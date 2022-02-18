@@ -11,27 +11,6 @@ import nltk
 import numpy as np
 import os
 # import Dataset.GraphicUtils as GraphicUtils
-import json
-
-# Step 0: load the training dataset from train.csv. Columns: "class", "article" (specified in Utils.Column)
-#         Get the name and the number of articles for each class.
-def initialize(split_name):
-
-    training_split, test_split, validation_split = Utils.load_dataset()
-
-    if split_name == Utils.TRAINING:
-        data_lls = training_split
-    elif split_name == Utils.VALIDATION:
-        data_lls = validation_split
-    else:   # test
-        data_lls = test_split
-
-    df = pd.DataFrame(data_lls, columns=[Utils.UTTERANCE, Utils.INTENT])
-    class_frequencies = list(df[Utils.INTENT].value_counts())
-    class_names = list(df[Utils.INTENT].value_counts().index)
-
-    return df, class_frequencies, class_names
-
 
 # Visualization: for each intent, on average how many words are in an utterance?
 # Meant to explore how some classes may be more "verbose" than others
@@ -66,49 +45,25 @@ def words_in_instances(df):
     fig.savefig(os.path.join(Filepaths.DATASET_FOLDER, "avg_words_in_intent.png"))
 
 
-def get_class_vocabularies(df):
-    intent_names = list(df[Utils.INTENT].value_counts().index)
+# Visualization: the number of words in the vocabulary with a given frequency
+def vocab_frequencies(vocab_dict):
 
-    for i_name in intent_names:
-        instances = df[df[Utils.INTENT] == i_name][Utils.UTTERANCE].to_list()
-        text = len(nltk.tokenize.word_tokenize(" ".join(instances), language='english'))
+    max_freq = max(vocab_dict.values())
 
-
+    frequencies_of_interest = [1,2,5]
 
 
 
 
-def vocabulary_unique(class_names, vocabularies_ls):
 
-    fig = plt.figure(4)
-    num_classes = len(class_names)
-    unique_vocabulary_fraction_ls = []
-    for i in range(num_classes):
-        vocab_class_i = vocabularies_ls[i]
-        cardinality_vocab_class_i = len(vocab_class_i)
-        for j in range(num_classes):
-            if j != i:
-                vocab_class_j = vocabularies_ls[j]
-                vocab_class_i = vocab_class_i.difference(vocab_class_j)
-        unique_vocabulary_fraction = round(len(vocab_class_i) / cardinality_vocab_class_i,2)
-        unique_vocabulary_fraction_ls.append(unique_vocabulary_fraction)
-    bar_obj = plt.bar(x=class_names, height=unique_vocabulary_fraction_ls, width=0.6, color="g")
-    plt.xticks(rotation=45, ha="right")
-    plt.xlabel('Class')
-    plt.ylabel('Percentage')
-    plt.title("% of vocabulary unique to the class")
-    # plt.grid(color='lightgray', linestyle='-', linewidth=0.2, zorder=-1)
-    plt.bar_label(bar_obj, labels=unique_vocabulary_fraction_ls, zorder=5)
-    # plt.legend(["Training set", "Test set"])
-    plt.show()
 
 
 def exe():
     training_lls, validation_lls, test_lls = Utils.load_dataset()
     df = pd.DataFrame(training_lls, columns=[Utils.UTTERANCE, Utils.INTENT])
     words_in_instances(df)
+    vocab = Utils.get_vocabulary(df)
+    return vocab
 
 
-    vocabulary_unique(class_names, vocabularies_ls)
-    plt.show()
 
