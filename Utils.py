@@ -59,8 +59,10 @@ def round_list_elems(ls, precision=2):
     return rounded_ls
 
 
-def load_model(lr):
-    model_fname = "Model_" + "lr" + str(lr) + ".pt"
-    saved_model_fpath = os.path.join(Filepaths.MODELS_FOLDER, Filepaths.SAVED_MODELS_SUBFOLDER, model_fname)
-    model = torch.load(saved_model_fpath)
+def load_model_from_file(filename):
+    saved_model_path = os.path.join(Filepaths.MODELS_FOLDER, Filepaths.SAVED_MODELS_SUBFOLDER, filename)
+    model = torch.load(saved_model_path) if torch.cuda.is_available() \
+        else torch.load(saved_model_path, map_location=torch.device('cpu'))
+    logging.info("Loading the model found at: " + str(saved_model_path))
+
     return model

@@ -17,10 +17,10 @@ class FFNet(torch.nn.Module):
 
 
     def forward(self, batch_of_sentences):
-        # CURRENT_DEVICE = 'cpu' if not (torch.cuda.is_available()) else 'cuda:' + str(torch.cuda.current_device())
+        DEVICE = 'cpu' if not (torch.cuda.is_available()) else 'cuda:' + str(torch.cuda.current_device())
 
         vectors_ls = [doc.vector for doc in self.univ_sentence_encoder.pipe(batch_of_sentences)]
-        x_t = torch.tensor(vectors_ls)
+        x_t = torch.tensor(vectors_ls).to(DEVICE)
 
         intermediate_rep = self.ff_nn_layers[0](x_t)
         logits = self.ff_nn_layers[1](intermediate_rep)

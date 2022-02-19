@@ -14,7 +14,7 @@ from Model.USE.NN import FFNet
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Setup, training loop + validation
-def run_train(learning_rate=1e-4, batch_size = 4):
+def run_train(learning_rate=1e-4, batch_size = 4, fname_model_to_load=None):
 
     # initialize log file
     now = datetime.now()
@@ -23,9 +23,7 @@ def run_train(learning_rate=1e-4, batch_size = 4):
 
     # Get training and validation set
     training_split, validation_split, test_split = Utils.load_dataset()
-    training_split = [training_split[i] for i in range(0,15000,50)]
     training_df = pd.DataFrame(training_split, columns=[Utils.UTTERANCE, Utils.INTENT])
-    validation_split = [validation_split[i] for i in range(0,3000,20)]
     val_df = pd.DataFrame(validation_split, columns=[Utils.UTTERANCE, Utils.INTENT])
 
     # initialize model
@@ -33,14 +31,18 @@ def run_train(learning_rate=1e-4, batch_size = 4):
     class_names.sort()
     logging.info("class_names = " + str(class_names))
     num_classes = len(class_names)
-    model = FFNet(num_classes)
+    if fname_model_to_load is not None:
+        model = Utils.load_model_from_file(fname_model_to_load)
+    else:
+        model = FFNet(num_classes)
+    model.to(DEVICE)
 
     measures_obj = EV.EvaluationMeasures()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # Training loop
     best_validation_loss = inf  # for early-stopping
-    max_epochs = 100
+    max_epochs = 30
     current_epoch = 0
     num_training_samples = training_df.index.stop
 
@@ -67,7 +69,7 @@ def run_train(learning_rate=1e-4, batch_size = 4):
 
             label_logprobabilities = model(batch_sentences)
             y_probvalues, y_predicted = label_logprobabilities.sort(dim=1, descending=True)
-            y_true = torch.tensor(labels)
+            y_true = torch.tensor(labels).to(DEVICE)
 
             # loss and step
             loss = tfunc.nll_loss(label_logprobabilities, y_true)
@@ -128,7 +130,7 @@ def evaluation(corpus_df, model):
 
         label_logprobabilities = model(batch_sentences)
         y_probvalues, y_predicted = label_logprobabilities.sort(dim=1, descending=True)
-        y_true = torch.tensor(labels)
+        y_true = torch.tensor(labels).to(DEVICE)
 
         # loss and step
         loss = tfunc.nll_loss(label_logprobabilities, y_true)
