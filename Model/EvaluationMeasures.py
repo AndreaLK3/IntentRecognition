@@ -21,11 +21,11 @@ class EvaluationMeasures :
 
     # ---------- Update ---------- #
     def append_labels(self, labels_t):
-        labels_ls = list(labels_t)
+        labels_ls = [l.item() for l in list(labels_t)]
         self.predicted_labels = self.predicted_labels + labels_ls
 
     def append_correct_labels(self, labels_t):
-        labels_ls = list(labels_t)
+        labels_ls = [l.item() for l in list(labels_t)]
         self.correct_labels = self.correct_labels + labels_ls
 
     def append_loss(self, loss):

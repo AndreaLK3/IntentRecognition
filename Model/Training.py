@@ -14,16 +14,18 @@ from Model.USE.NN import FFNet
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Setup, training loop + validation
-def run_train(learning_rate=5e-5, batch_size = 4):
+def run_train(learning_rate=1e-4, batch_size = 4):
 
     # initialize log file
     now = datetime.now()
     dt_string = now.strftime("%d%m-%H%M")
-    Utils.init_logging("Training_" + "dt" + dt_string + ".log")  #
+    Utils.init_logging("Training_" + "dt" + dt_string + ".log")
 
     # Get training and validation set
     training_split, validation_split, test_split = Utils.load_dataset()
+    training_split = [training_split[i] for i in range(0,15000,50)]
     training_df = pd.DataFrame(training_split, columns=[Utils.UTTERANCE, Utils.INTENT])
+    validation_split = [validation_split[i] for i in range(0,3000,20)]
     val_df = pd.DataFrame(validation_split, columns=[Utils.UTTERANCE, Utils.INTENT])
 
     # initialize model
@@ -38,50 +40,53 @@ def run_train(learning_rate=5e-5, batch_size = 4):
 
     # Training loop
     best_validation_loss = inf  # for early-stopping
-    max_epochs = 40
-    current_epoch = 1
+    max_epochs = 100
+    current_epoch = 0
     num_training_samples = training_df.index.stop
 
-    while current_epoch <= max_epochs:
+    while current_epoch < max_epochs:
+        current_epoch = current_epoch + 1
         logging.info(" ****** Current epoch: " + str(current_epoch) + " ****** ")
         training_iterator = Reader.instance_iterator(training_df)  # the samples' iterator
         sample_num = 0
 
-        # starting operations on one batch
-        optimizer.zero_grad()
-        batch_elem = 0
-        batch_sentences = []
-        labels = []
-        while batch_elem < batch_size:
-            sentence_text, intent_label = training_iterator.__next__()
-            batch_sentences.append(sentence_text)
-            labels.append(intent_label)
-            batch_elem = batch_elem +1
-        sample_num = sample_num + batch_size
+        while sample_num < num_training_samples:
 
-        label_logprobabilities = model(batch_sentences)
-        y_probvalues, y_predicted = label_logprobabilities.sort(dim=1, descending=True)
-        y_true = torch.tensor(labels)
+            # starting operations on one batch
+            optimizer.zero_grad()
+            batch_elem = 0
+            batch_sentences = []
+            labels = []
+            while batch_elem < batch_size:
+                batch_elem = batch_elem + 1
+                sentence_text, intent_label = training_iterator.__next__()
+                batch_sentences.append(sentence_text)
+                labels.append(intent_label)
 
-        # loss and step
-        loss = tfunc.nll_loss(label_logprobabilities, y_true.unsqueeze(1))
-        loss.backward()
-        optimizer.step()
+            sample_num = sample_num + batch_size
 
-        # stats
-        y_top_predicted = y_predicted.t()[0]
-        measures_obj.append_labels(y_top_predicted)
-        measures_obj.append_correct_labels(y_true)
-        measures_obj.append_loss(loss.item())
+            label_logprobabilities = model(batch_sentences)
+            y_probvalues, y_predicted = label_logprobabilities.sort(dim=1, descending=True)
+            y_true = torch.tensor(labels)
 
-        if sample_num % (num_training_samples // 5) == 0:
-            logging.info("Training sample: \t " + str(sample_num) + "/ " + str(num_training_samples) + " ...")
+            # loss and step
+            loss = tfunc.nll_loss(label_logprobabilities, y_true)
+            loss.backward()
+            optimizer.step()
+
+            # stats
+            y_top_predicted = y_predicted.t()[0]
+            measures_obj.append_labels(y_top_predicted)
+            measures_obj.append_correct_labels(y_true)
+            measures_obj.append_loss(loss.item())
+
+            if sample_num % (num_training_samples // 10) == 0:
+                logging.info("Training sample: \t " + str(sample_num) + "/ " + str(num_training_samples) + " ...")
 
         # end of epoch: print stats, and reset them
-        # EV.log_accuracy_measures(measures_obj)
-        # measures_obj.reset_counters()
-        current_epoch = current_epoch + 1
-
+        EV.log_accuracy_measures(measures_obj)
+        measures_obj.reset_counters()
+        #
         # examine the validation set
         validation_loss = evaluation(val_df, model)
         logging.info("validation_loss=" + str(round(validation_loss, 3))
@@ -92,44 +97,55 @@ def run_train(learning_rate=5e-5, batch_size = 4):
             logging.info("Early stopping")
             break  # early stop
 
-    model_fname = "Model_" + "lr" + str(learning_rate) + ".pt"
-    torch.save(model, os.path.join(Filepaths.models_folder, Filepaths.saved_models_subfolder, model_fname))
+    model_fname = "Model_" + model.__class__.__name__ + "_dt" + dt_string +  ".pt"
+    torch.save(model, os.path.join(Filepaths.MODELS_FOLDER, Filepaths.SAVED_MODELS_SUBFOLDER, model_fname))
     return model
 
 
 # Inference only. Used for the validation set, and possibly any test set
 def evaluation(corpus_df, model):
-    pass
-    # model.eval()  # do not train the model now
-    # samples_iterator = CorpusReader.next_featuresandlabel_article(corpus_df)
-    #
-    # validation_measures_obj = EV.EvaluationMeasures()
-    # num_samples = corpus_df.index.stop
-    # sample_num = 0
-    #
-    # for article_indices, article_label in samples_iterator:
-    #
-    #     x_indices_t = torch.tensor(article_indices).to(DEVICE)
-    #     y_t = torch.tensor(article_label).to(DEVICE)
-    #     label_probabilities = model(x_indices_t)
-    #     predicted_label = torch.argmax(label_probabilities)
-    #
-    #     loss = tfunc.nll_loss(label_probabilities, y_t.unsqueeze(0))
-    #
-    #     # stats
-    #     validation_measures_obj.append_label(predicted_label.item())
-    #     validation_measures_obj.append_correct_label(article_label)
-    #     validation_measures_obj.append_loss(loss.item())
-    #
-    #     sample_num = sample_num+1
-    #     if sample_num % (num_samples // 5) == 0:
-    #         logging.info("Sample: \t " + str(sample_num) + "/ " + str(num_samples) + " ...")
-    #
-    # # end of epoch: print stats
-    # EV.log_accuracy_measures(validation_measures_obj)
-    #
-    # model.train()  # training can resume
-    #
-    # validation_loss = validation_measures_obj.compute_loss()
-    #
-    # return validation_loss
+    logging.info("Evaluation")
+    model.eval()  # do not train the model now
+    samples_iterator = Reader.instance_iterator(corpus_df)
+
+    measures_obj = EV.EvaluationMeasures()
+    num_samples = corpus_df.index.stop
+    sample_num = 0
+    batch_size = 1
+
+    while sample_num < num_samples:
+
+        batch_elem = 0
+        batch_sentences = []
+        labels = []
+        while batch_elem < batch_size:
+            batch_elem = batch_elem + 1
+            sentence_text, intent_label = samples_iterator.__next__()
+            batch_sentences.append(sentence_text)
+            labels.append(intent_label)
+
+        sample_num = sample_num + batch_size
+
+        label_logprobabilities = model(batch_sentences)
+        y_probvalues, y_predicted = label_logprobabilities.sort(dim=1, descending=True)
+        y_true = torch.tensor(labels)
+
+        # loss and step
+        loss = tfunc.nll_loss(label_logprobabilities, y_true)
+
+        # stats
+        y_top_predicted = y_predicted.t()[0]
+        measures_obj.append_labels(y_top_predicted)
+        measures_obj.append_correct_labels(y_true)
+        measures_obj.append_loss(loss.item())
+
+        sample_num = sample_num+1
+        if sample_num % (num_samples // 5) == 0:
+            logging.info("Sample: \t " + str(sample_num) + "/ " + str(num_samples) + " ...")
+
+    # end of epoch: print stats
+    EV.log_accuracy_measures(measures_obj)
+    model.train()  # training can resume
+    evaluation_loss = measures_obj.compute_loss()
+
+    return evaluation_loss
