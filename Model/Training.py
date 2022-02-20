@@ -9,17 +9,19 @@ import os
 import torch.nn.functional as tfunc
 from datetime import datetime
 import Model.EvaluationMeasures as EV
-from Model.USE.NN import FFNet
+from Model.NN import FFNet
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Setup, training loop + validation
-def run_train(learning_rate=1e-4, batch_size = 4, fname_model_to_load=None):
+def run_train(learning_rate=5e-4, batch_size = 8, fname_model_to_load=None):
 
     # initialize log file
     now = datetime.now()
     dt_string = now.strftime("%d%m-%H%M")
     Utils.init_logging("Training_" + "dt" + dt_string + ".log")
+    logging.info("Starting training...")
+    logging.info("batch_size=" + str(batch_size) + ", learning_rate="+ str(learning_rate))
 
     # Get training and validation set
     training_split, validation_split, test_split = Utils.load_dataset()
@@ -42,7 +44,7 @@ def run_train(learning_rate=1e-4, batch_size = 4, fname_model_to_load=None):
 
     # Training loop
     best_validation_loss = inf  # for early-stopping
-    max_epochs = 30
+    max_epochs = 100
     current_epoch = 0
     num_training_samples = training_df.index.stop
 
