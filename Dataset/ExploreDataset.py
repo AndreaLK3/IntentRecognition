@@ -49,7 +49,7 @@ def words_in_instances(df):
 
 # Visualization: the number of words in the vocabulary with a given frequency
 def vocab_frequencies(vocab_dict):
-    Utils.init_logging("Vocabulary_frequencies.log")
+    # Utils.init_logging("Vocabulary_frequencies.log")
 
     max_freq = max(vocab_dict.values())
     logging.info("The 15000 utterances of the training dataset contain in total " + str(sum(list(vocab_dict.values()))) + " words")

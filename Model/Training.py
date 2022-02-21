@@ -61,13 +61,12 @@ def run_train(learning_rate=5e-4, batch_size = 8, fname_model_to_load=None):
             batch_elem = 0
             batch_sentences = []
             labels = []
-            while batch_elem < batch_size:
+            while batch_elem < batch_size and sample_num < num_training_samples:
                 batch_elem = batch_elem + 1
                 sentence_text, intent_label = training_iterator.__next__()
                 batch_sentences.append(sentence_text)
                 labels.append(intent_label)
-
-            sample_num = sample_num + batch_size
+                sample_num = sample_num + 1
 
             label_logprobabilities = model(batch_sentences)
             y_probvalues, y_predicted = label_logprobabilities.sort(dim=1, descending=True)
