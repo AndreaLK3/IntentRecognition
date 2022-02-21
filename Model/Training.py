@@ -10,11 +10,12 @@ import torch.nn.functional as tfunc
 from datetime import datetime
 import Model.EvaluationMeasures as EV
 from Model.NN import FFNet
+from Model.CNN import ConvNet
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Setup, training loop + validation
-def run_train(learning_rate=5e-4, batch_size = 8, fname_model_to_load=None):
+def run_train(learning_rate=1e-4, batch_size = 8, model_type="FFNet"):
 
     # initialize log file
     now = datetime.now()
@@ -33,10 +34,10 @@ def run_train(learning_rate=5e-4, batch_size = 8, fname_model_to_load=None):
     class_names.sort()
     logging.info("class_names = " + str(class_names))
     num_classes = len(class_names)
-    if fname_model_to_load is not None:
-        model = Utils.load_model_from_file(fname_model_to_load)
-    else:
+    if model_type == "FFNet":
         model = FFNet(num_classes)
+    elif model_type == "ConvNet":
+        model = ConvNet(num_classes)
     model.to(DEVICE)
 
     measures_obj = EV.EvaluationMeasures()

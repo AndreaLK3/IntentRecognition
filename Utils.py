@@ -5,6 +5,7 @@ import torch
 import os
 import sys
 import logging
+import torch.nn.functional as tfunc
 
 UTTERANCE = "utterance"
 INTENT = "intent"
@@ -12,7 +13,6 @@ INTENT = "intent"
 TRAINING = "training"
 VALIDATION = "validation"
 TEST = "test"
-
 
 
 def load_dataset():
@@ -59,6 +59,20 @@ def init_logging(logfilename, loglevel=logging.INFO):
 def round_list_elems(ls, precision=2):
     rounded_ls = [round(elem, precision) for elem in ls]
     return rounded_ls
+
+# Given a list of tensors (seql_len, dim_features), pad them all to the same size with zeros
+def pad_list_of_tensors(x_t_ls):
+    # determine the maximum sequence length
+    max_seq_len = 0
+    for i in range(len(x_t_ls)):
+        seq_len = x_t_ls[i].shape[0]
+        max_seq_len = max(seq_len, max_seq_len)
+
+    # pad all sequences to the same length with zeros
+    for i in range(len(x_t_ls)):
+        seq_len = x_t_ls[i].shape[0]
+        # to pad only the last dimension of the input tensor, the pad has the form (padding_left, padding_right)
+        x_t_ls[i] = tfunc.pad(x_t_ls[i], (0, 0, 0, max_seq_len - seq_len))
 
 
 def load_model_from_file(filename):

@@ -30,14 +30,4 @@ class FFNet(torch.nn.Module):
         return predictions_classes
 
 
-class BatchEncoder(torch.nn.Module):
-
-    def __init__(self, num_classes):
-        super(BatchEncoder,self).__init__()
-        self.univ_sentence_encoder = spacy_universal_sentence_encoder.load_model('en_use_lg')
-
-
-    def forward(self, sentence):
-        return self.univ_sentence_encoder(sentence)
-
 

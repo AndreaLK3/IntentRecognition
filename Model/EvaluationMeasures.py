@@ -25,8 +25,8 @@ class EvaluationMeasures :
         self.predicted_labels = self.predicted_labels + labels_ls
 
     def append_correct_labels(self, labels_t):
-        labels_ls = [l.item() for l in list(labels_t)]
-        self.correct_labels = self.correct_labels + labels_ls
+        correct_labels_ls = [l.item() for l in list(labels_t)]
+        self.correct_labels = self.correct_labels + correct_labels_ls
 
     def append_loss(self, loss):
         self.total_loss = self.total_loss + loss
@@ -67,11 +67,6 @@ def log_accuracy_measures(measures_obj):
     avg_f1_score, f1_score_ls = measures_obj.compute_f1score()
 
     loss = measures_obj.compute_loss()
-
-    # How many classes are close to the min or max f1_score?
-    close_to_min_ls = [el for el in f1_score_ls if el <= min(f1_score_ls) + 0.1]
-    close_to_max_ls = [el for el in f1_score_ls if el >= max(f1_score_ls) - 0.1]
-
 
     logging.info("loss=" + str(round(loss,2))+ " ; accuracy=" + str(round(accuracy,3)))
     logging.info("Average F1_score=" + str(round(avg_f1_score, 2)))
